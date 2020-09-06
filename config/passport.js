@@ -1,11 +1,11 @@
 const LocalStrategy = require("passport-local").Strategy;
 
 const mysql = require('mysql');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 const dbconfig = require('./database');
 const connection = mysql.createConnection(dbconfig.connection);
 
-connection.query('USE' + dbconfig.database);
+connection.query('USE ' + dbconfig.database);
 
 module.exports = function(passport) {
     passport.serializeUser(function(user, done){
@@ -22,26 +22,26 @@ module.exports = function(passport) {
     passport.use(
         'local-signup',
         new LocalStrategy({
-            usernameField : 'username',
+            usernameField : 'email',
             passwordField : 'password',
             passReqToCallback: true
         },
-        function(req, username, password, done){
-            connection.query("SELECT * FROM users WHERE username = ? ", 
-            [username], function(err, rows){
+        function(req, email, password, done){
+            connection.query("SELECT * FROM users WHERE email = ? ", 
+            [email], function(err, rows){
                 if(err)
                     return done(err);
                 if(rows.length){
                     return done(null, false, req.flash('signupMessage', 'that is already taken'));
                 }else{
                     var newUserMysql = {
-                        username: username,
-                        password: bcrypt.hashSync(password, null, null)
+                        email: email,
+                        password: bcrypt.hashSync(password, 10)
                     };
 
-                    var insertQuery = "INSERT INTO users (username, password) VALUES (?, ?)";
-
-                    connection.query(insertQuery, [newUserMysql.username, newUserMysql.password],
+                    var insertQuery = "INSERT INTO users (email, password) VALUES (?, ?)";
+                    console.log(insertQuery);
+                    connection.query(insertQuery, [newUserMysql.email, newUserMysql.password],
                         function(err, rows){
                             newUserMysql.id = rows.insertId;
 
@@ -56,12 +56,12 @@ module.exports = function(passport) {
 passport.use(
     'local-login',
     new LocalStrategy({
-        usernameField : 'username',
+        usernameField : 'email',
         passwordField : 'password',
         passReqToCallback: true
     },
-    function(req, username, password, done){
-            connection.query("SELECT * FROM users WHERE username = ? ", [username],
+    function(req, email, password, done){
+            connection.query("SELECT * FROM users WHERE email = ? ", [email],
             function(err, rows){
                 if(err)
                     return done(err);
